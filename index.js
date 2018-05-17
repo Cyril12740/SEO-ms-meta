@@ -1,15 +1,17 @@
 import amqp                           from "amqplib/callback_api";
 import async                          from "async";
 import mongoose                       from "mongoose";
-import {amqpUrl, mongodbUrl, mariaDBUrl} from "./common/config";
+import {amqpUrl, mongodbUrl, mariaDBUrl, console} from "./common/config";
 import mysql                          from 'mysql';
 import HTMLParser                     from './HTMLParser';
-import {wordCounter, wordSeparator}   from './keyword';
 import { resolve } from "url";
 import { throws } from "assert";
+import spider_result from "./common/models/spider_result";
 const readfile = require('fs-readfile-promise');
+import {MetaService} from './MetaService';
+import {MySQLService} from './SqlService';
 
-var parser = new HTMLParser();
+
 /*
 readfile('./fake/index.html').then(result => {
     return result.toString();
@@ -22,26 +24,13 @@ readfile('./fake/index.html').then(result => {
     return metas;
 }).then(result => {
     console.log(result);
-    debugger;
 });
 */
 
+
+
+
 //si vous souhaitez ne pas utiliser mongo / rabbit ou mariadb, il vous suffit d'ajouter "return callback(null)" au début de la fonction correspondante
-
-function mongoGetByIdPromise(mongoCllection){
-    return new Promise((resolve, reject) => {
-        mongoCllection.findById(spiderResultId, function(fetchError, result) {
-            console.log('sffsd');
-            debugger;
-            if(fetchError) {
-                reject(fetchError);
-                return;
-            }
-
-            resolve(result);
-        });
-    });
-}
 
 function getMsgId(msg) {
     let task;
@@ -108,10 +97,12 @@ async.parallel({
         }
     },
     function (err, results) {
+        var service = new MetaService(spider_result, new HTMLParser(), new MySQLService(results.maria));
         if (err) {
             console.error(err);
             process.exit(1);
         }
+
 
         let ch = results.rabbit;
 
@@ -130,62 +121,14 @@ async.parallel({
                 return;
             }
 
-            mongoGetByIdPromise(spiderResultId)
-                .catch(fetchError => {
-                    throw new Error("Failed to fetch spider result for id "+ spiderResultId + ". Error : " + JSON.stringify(fetchError));
-
-                })
-                .then(result => {
-                    if (!result) {
-                        throw new Error("No spider result for id "+ spiderResultId + ".");
-                    }
-        
-                    var html = result.html
-                    if (!html) {
-                        throw new Error("No spider html found in the spider result "+ JSON.stringify(result) + ".");
-                    }
-                    debugger;
-                    return html;
-                }).then(html => {
-                    return parser.getResults(html);
-                }).then(metas => {
-                    metas.forEach(meta => {
-                        meta.keywords = wordCounter(wordSeparator(meta.content));
-                    });
-                    return metas;
-                }).then(result => {
-                    console.log(result);
-                    debugger;
-                }).catch(err => {
-                    if(err.toString().indexOf('Failed to fetch spider result for id') < 0) {
-                        ch.ack(msg);
-                    }
-                    console.error(err);
-                });
-/*
-            spider_result.findById(spiderResultId, function(fetchError, result) {
-                
-                debugger;
-
-                //console.log("Found html in result "+ JSON.stringify(result));
-                
-    
-                var results = parser.getResults();
-    
-                // var sql = new MySQLService()
-                // sql.sendResults(results, function(){
-                //     console.log("Success send all result in SQL.");
-                //     ch.ack(msg);
-                // }, function(error) {
-                //     console.error("Failed send result to SQL "+ error + ".");
-                //     ch.ack(msg);
-                // });
-                
+            service.run(spiderResultId)
+            .catch((err) => {
+                console.error(err);//log error
             })
+            .then(() => {
+                ch.ack(msg);
+            });
 
-
-            //cette commande pour dire que vous avez finis votre tache en cours (comme une callback)
-            ch.ack(msg);*/
         }, {noAck: false});
     });
 

@@ -2,7 +2,8 @@ CREATE TABLE Meta (
     Id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     Content VARCHAR(MAX) NOT NULL,
     Length int NOT NULL,
-    Type VARCHAR(255)
+    Type VARCHAR(255),
+    PageId INT
 )
 
 CREATE TABLE MetaKeyword (
