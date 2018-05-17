@@ -1,0 +1,14 @@
+CREATE TABLE Meta (
+    Id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    Content VARCHAR(MAX) NOT NULL,
+    Length int NOT NULL,
+    Type VARCHAR(255)
+)
+
+CREATE TABLE MetaKeyword (
+    Id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    Content VARCHAR(255) NOT NULL,
+    Occurence INT,
+    MetaId INT,
+    FOREIGN KEY (MetaId) REFERENCES Meta(Id)
+)

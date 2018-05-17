@@ -25,6 +25,8 @@
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "babel-register": "^6.26.0",
+    "fs-readfile-promise": "^3.0.1",
+    "jsdom": "^11.10.0",
     "mongoose": "^5.0.15",
     "mysql": "^2.15.0",
     "seo-common": "file:common",
